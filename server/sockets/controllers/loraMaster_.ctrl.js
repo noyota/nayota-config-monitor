@@ -8,11 +8,8 @@ class LoraMasterSocket {
   async open(message) {
     const { serialData } = message
     if (serialData) {
+      await serialPorts.init(message) // 初始串口
       this.serialport = await serialMaps.serialPorts.get(serialData.comName)
-      if (!this.serialport) {
-        await serialPorts.init(message) // 初始串口
-        this.serialport = await serialMaps.serialPorts.get(serialData.comName)
-      }
       this.serialport.on('message', (data) => {
         this.socket.emit('lora-set.message', hexCharCodeToStr(data))
       })
