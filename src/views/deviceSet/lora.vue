@@ -174,6 +174,10 @@ export default {
       inc: undefined,
       address: '',
       wordMap: {},
+      bwMap: {},
+      factorMap: {},
+      crMap: {},
+      frequencyMap: {},
       next: false
     }
   },
@@ -191,6 +195,22 @@ export default {
     this.loading = false
     this.getList()
     this.getIcs()
+    this.bwMap = {}
+    this.bwList.forEach(item => {
+      this.bwMap[item.value] = item
+    })
+    this.factorMap = {}
+    this.factorList.forEach(item => {
+      this.factorMap[item.value] = item
+    })
+    this.crMap = {}
+    this.crList.forEach(item => {
+      this.crMap[item.value] = item
+    })
+    this.frequencyMap = {}
+    this.frequencyList.forEach(item => {
+      this.frequencyMap[item.value] = item
+    })
   },
   destroyed() {
     this.$socket.close() // 关闭 socket
@@ -221,9 +241,6 @@ export default {
       }
     },
     'lora-set.message': function(data) {
-      const time = this.getTime()
-      const body = '<div style="width:100%;">' + time + '&nbsp;&nbsp;:&nbsp;&nbsp;收到:' + data + '</div>'
-      this.logger = this.logger + body
       try {
         const m = JSON.parse(data)
         if (m !== undefined) {
@@ -244,6 +261,51 @@ export default {
             }
             this.scanCode()
           }
+          const time = this.getTime()
+          var msg = []
+          if (m.CONFIG !== undefined && m.CONFIG === 'IN') {
+            msg.push('设备进入配置模式')
+          }
+          if (m.CONFIG !== undefined && m.CONFIG === 'OUT') {
+            msg.push('设备退出配置模式')
+          }
+          if (m.RCEV !== undefined && m.RCEV === 'OK') {
+            msg.push('配置成功')
+          }
+          if (m.TYPE !== undefined) {
+            msg.push('类型' + this.wordMap[m.TYPE].name)
+          }
+          if (m.SLA !== undefined) {
+            msg.push('地址' + m.SLA)
+          }
+          if (m.FRE !== undefined) {
+            m.FRE = m.FRE.toString(16)
+            msg.push('频段' + (this.frequencyMap[m.FRE] !== undefined ? this.frequencyMap[m.FRE].label : m.FRE))
+          }
+          if (m.BW !== undefined) {
+            m.BW = '0' + m.BW
+            msg.push('带宽' + (this.bwMap[m.BW] !== undefined ? this.bwMap[m.BW].label : m.BW))
+          }
+          if (m.SF !== undefined) {
+            m.SF = m.SF.toString(16)
+            while (m.SF.length < 2) {
+              m.SF = '0' + m.SF
+            }
+            msg.push('扩频因子' + (this.factorMap[m.FRE] !== undefined ? this.factorMap[m.FRE].label : m.FRE))
+          }
+          if (m.ERR !== undefined) {
+            m.ERR = m.ERR.toString(16)
+            while (m.ERR.length < 2) {
+              m.ERR = '0' + m.ERR
+            }
+            msg.push('编码率' + (this.crMap[m.ERR] !== undefined ? this.factorMap[m.ERR].label : m.ERR))
+          }
+          const body = '<div style="width:100%;">' + time + '&nbsp;&nbsp;:&nbsp;&nbsp;收到:' + msg.join(',') + '</div>'
+          this.logger = this.logger + body
+        } else {
+          const time = this.getTime()
+          const body = '<div style="width:100%;">' + time + '&nbsp;&nbsp;:&nbsp;&nbsp;收到:' + data + '</div>'
+          this.logger = this.logger + body
         }
       } catch (e) {
         console.log(e)
@@ -353,7 +415,24 @@ export default {
       message.ERR = parseInt(this.temp.loraData.codingrate)
       message.SF = parseInt(this.temp.loraData.factor)
       const time = this.getTime()
-      const body = '<div style="width:100%;">' + time + '&nbsp;&nbsp;:&nbsp;&nbsp;发出:' + JSON.stringify(message) + '</div>'
+      var msg = []
+      if (this.temp.loraData.frequency !== undefined) {
+        var frequency = this.temp.loraData.frequency
+        msg.push('频段' + (this.frequencyMap[frequency] !== undefined ? this.frequencyMap[frequency].label : frequency))
+      }
+      if (this.temp.loraData.bandwidth !== undefined) {
+        var bandwidth = this.temp.loraData.bandwidth
+        msg.push('带宽' + (this.bwMap[bandwidth] !== undefined ? this.bwMap[bandwidth].label : bandwidth))
+      }
+      if (this.temp.loraData.factor !== undefined) {
+        var factor = this.temp.loraData.factor
+        msg.push('扩频因子' + (this.factorMap[factor] !== undefined ? this.factorMap[factor].label : factor))
+      }
+      if (this.temp.loraData.codingrate !== undefined) {
+        var codingrate = this.temp.loraData.codingrate
+        msg.push('编码率' + (this.crMap[codingrate] !== undefined ? this.crMap[codingrate].label : codingrate))
+      }
+      const body = '<div style="width:100%;">' + time + '&nbsp;&nbsp;:&nbsp;&nbsp;发出:' + msg.join(',') + '</div>'
       this.logger = this.logger + body
       this.$socket.emit('lora-set.port-write', { hex: true, message: JSON.stringify(message) })
     },
@@ -362,7 +441,7 @@ export default {
         'STATE': 1
       }
       const time = this.getTime()
-      const body = '<div style="width:100%;">' + time + '&nbsp;&nbsp;:&nbsp;&nbsp;发出:' + JSON.stringify(message) + '</div>'
+      const body = '<div style="width:100%;">' + time + '&nbsp;&nbsp;:&nbsp;&nbsp;发出:' + '推出配置模式' + '</div>'
       this.logger = this.logger + body
       this.$socket.emit('lora-set.port-write', { hex: true, message: JSON.stringify(message) })
     },
@@ -416,7 +495,9 @@ export default {
         nums.push(1)
       }
       let address = this.set.address
+      // eslint-disable-next-line no-unused-vars
       for await (const item of nums) {
+        console.log(item)
         let message = ''
         if (item === 2) {
           if (this.print.checked) {

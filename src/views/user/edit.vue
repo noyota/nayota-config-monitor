@@ -71,24 +71,22 @@
           <p style="font-size:12px;line-height: 14px;color: #919191;">{{ $t(&#x27;users.ph_more_title&#x27;) }}</p>
         </el-form-item>
         <el-form-item v-if="temp.type===1" :label="$t('displayAreaClass.name')" prop="hardwareWord" class="form-item">
-          <template>
-            <el-select
-              v-model="temp.displayAreaClass"
-              :placeholder="$t('displayAreaClass.namePlaceholder')"
-              filterable
-              multiple
-              value-key="_id"
+          <el-select
+            v-model="temp.displayAreaClass"
+            :placeholder="$t('displayAreaClass.namePlaceholder')"
+            filterable
+            multiple
+            value-key="_id"
+          >
+            <el-option
+              v-for="item in displayAreaClasss"
+              :key="item._id"
+              :label="item.name"
+              :value="item"
             >
-              <el-option
-                v-for="item in displayAreaClasss"
-                :key="item._id"
-                :label="item.name"
-                :value="item"
-              >
-                <span style="float: left">{{ item.name }}</span>
-              </el-option>
-            </el-select>
-          </template>
+              <span style="float: left">{{ item.name }}</span>
+            </el-option>
+          </el-select>
         </el-form-item>
       </el-form>
     </fieldset>

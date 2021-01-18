@@ -455,7 +455,9 @@ export default {
         nums.push(1)
       }
       let address = this.set.newAddr
+      // eslint-disable-next-line no-unused-vars
       for await (const item of nums) {
+        console.log(item)
         let message = ''
         if (item === 2) {
           if (this.print.checked) {
