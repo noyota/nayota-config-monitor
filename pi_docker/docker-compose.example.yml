@@ -1,0 +1,48 @@
+version: '3'
+
+services:
+  mongodb3:
+    image: andresvidal/rpi3-mongodb3
+    expose:
+    - 27017
+    environment:
+      NODE_ENV: production
+    restart: always
+    ports:
+    - "27017:27017" #暴露27017端口
+    volumes:
+    - /home/pi/db/mongo:/data/db
+    container_name: mongodb3
+  app:
+    build: ./
+    image: nayota-config-monitor
+    expose:
+    - 4041
+    environment:
+      TZ: Asia/Shanghai
+      NODE_ENV: production
+      SERVER_PORT: 4040
+      JWT_SECRET: 0a6b944d-d2fb-46fc-a85e-0295c986cd9f
+      MONGO_HOST: mongodb://mongodb3/nayota-config-monitor
+      MONGO_DATA_HOST: mongodb://mongodb3/
+      LOG_FILE: log/app.log
+      ROLE: pi
+      CLIENT_DIST: ../dist
+      RESOURCE_SERVER: http://res.25soft.com
+    restart: always
+    ports:
+    - "80:4043" #暴露80端口
+    depends_on:
+    - mongodb3
+    devices:
+    - "/dev/ttyAMA0:/dev/ttyAMA0"
+    volumes:
+    - /home/pi/project:/app
+    - /home/pi/db/mongo:/mongo
+    command:
+    - /bin/sh
+    - -c
+    - |
+      yarn
+      node ./server
+    container_name: nayota-config-monitor
