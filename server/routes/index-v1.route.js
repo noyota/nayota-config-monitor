@@ -2,7 +2,7 @@ const express = require('express')
 // new route require append
 const loraMasterRoutes = require('./loraMaster.route')
 const userRoutes = require('./user.route')
-
+const uploadRoutes = require('./upload.route')
 const authRoutes = require('./auth.route')
 const wordRoutes = require('./word.route')
 const wordTypeRoutes = require('./wordType.route')
@@ -23,6 +23,7 @@ router.get('/health-check', (req, res) => {
 })
 
 router.use('/auth', authRoutes)
+router.use('/uploads', uploadRoutes)
 router.use(passport.authenticate('jwt', { session: false }))
 router.use('/users', userRoutes)
 router.use('/roles', roleRoutes)

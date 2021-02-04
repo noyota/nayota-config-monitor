@@ -291,14 +291,14 @@ export default {
             while (m.SF.length < 2) {
               m.SF = '0' + m.SF
             }
-            msg.push('扩频因子' + (this.factorMap[m.FRE] !== undefined ? this.factorMap[m.FRE].label : m.FRE))
+            msg.push('扩频因子' + (this.factorMap[m.SF] !== undefined ? this.factorMap[m.SF].label : m.FRE))
           }
           if (m.ERR !== undefined) {
             m.ERR = m.ERR.toString(16)
             while (m.ERR.length < 2) {
               m.ERR = '0' + m.ERR
             }
-            msg.push('编码率' + (this.crMap[m.ERR] !== undefined ? this.factorMap[m.ERR].label : m.ERR))
+            msg.push('编码率' + (this.crMap[m.ERR] !== undefined ? this.crMap[m.ERR].label : m.ERR))
           }
           const body = '<div style="width:100%;">' + time + '&nbsp;&nbsp;:&nbsp;&nbsp;收到:' + msg.join(',') + '</div>'
           this.logger = this.logger + body

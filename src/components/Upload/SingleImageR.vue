@@ -31,7 +31,7 @@ export default {
   },
   data() {
     return {
-      uploadURL: process.env.VUE_APP_RESOURCE_SERVER + '/uploads'
+      uploadURL: process.env.VUE_APP_BASE_API + '/uploads'
     }
   },
   computed: {
