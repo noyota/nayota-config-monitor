@@ -340,7 +340,7 @@ export default {
     async getList() {
       const words = (await wordList({ wordType: '6066ac0976587221d6f69b68' })).data.rows
       if (words.length > 0) {
-        this.frequencyList = words
+        this.frequencyList = words.map(item => { item.label = item.name })
       }
       this.loraMasters = (await list({})).data.rows
       this.loraMasters.forEach((item) => {

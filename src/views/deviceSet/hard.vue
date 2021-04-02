@@ -340,7 +340,7 @@ export default {
       this.words = (await wordList({ wordType: '5d2e7a2974e7fa0b8fed48a5' })).data.rows
       const words = (await wordList({ wordType: '6066ac0976587221d6f69b68' })).data.rows
       if (words.length > 0) {
-        this.frequencyList = words
+        this.frequencyList = words.map(item => { item.label = item.name })
       }
     },
     async changeSet(loraMaster) {
