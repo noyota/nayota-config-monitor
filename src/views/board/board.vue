@@ -148,6 +148,7 @@
 
 <script>
 import { list, updateOne, create } from '@/api/loraMasters'
+import { list as wordList } from '@/api/words'
 import { BAUD_RATES, CHECKS, STOP_BITS, DATA_BITS, SFS, BANDWIDTHS, CODERATE, FREQUENCY, SERIAL_PORTS } from '@/utils/constant'
 // import DebugPorts from './components/DebugPorts'
 import editForm from './edit'
@@ -337,6 +338,10 @@ export default {
       this.$socket.emit('lora-master.use-config', { force: false, loraMasterId: this.temp._id })
     },
     async getList() {
+      const words = (await wordList({ wordType: '6066ac0976587221d6f69b68' })).data.rows
+      if (words.length > 0) {
+        this.frequencyList = words
+      }
       this.loraMasters = (await list({})).data.rows
       this.loraMasters.forEach((item) => {
         if (item.status === true) {
