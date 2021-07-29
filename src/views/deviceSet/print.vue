@@ -134,13 +134,29 @@ export default {
       this.$socket.emit('qrcode.open', { force, serialData: serial })
     },
     printWrite() {
+      let message = '^XA^JMA^LL320^PW460^MD0^PR3^PON^LRN^LH0,0^CI26'
       const t_l = parseInt((320 - this.text.length * 12) / 2)
-      const message = '^XA^JMA^LL320^PW460^MD0^PR3^POI^LRN^LH0,0^CI26' +
-        '^FO10,' + t_l + '^A0R,28,28^FD' + this.text + '^FS' +
-        '^FO270,' + t_l + '^A0R,28,28^FD' + this.text + '^FS' +
-        '^FO45,92^BQN,2,5^FDHM,B0200 ' + this.text + '^FS' +
-        '^FO305,92^BQN,2,5^FDHM,B0200 ' + this.text + '^FS' +
-        '^XZ'
+      if (this.text.length > 40) {
+        this.text = this.text.substring(0, 40)
+      }
+      if (this.text.length > 20) {
+        var t1 = this.text.substr(0, 20)
+        const t1_l = parseInt((320 - t1.length * 12) / 2)
+        var t2 = this.text.substr(20, this.text.length)
+        const t2_l = parseInt((320 - t2.length * 12) / 2)
+        message += '^FO0,' + t2_l + '^A0R,28,28^FD' + t2 + '^FS'
+        message += '^FO25,' + t1_l + '^A0R,28,28^FD' + t1 + '^FS'
+        message += '^FO60,92^BQN,2,3^FDHM,B0200 ' + this.text + '^FS'
+        message += '^FO270,' + t2_l + '^A0R,28,28^FD' + t2 + '^FS'
+        message += '^FO295,' + t1_l + '^A0R,28,28^FD' + t1 + '^FS'
+        message += '^FO340,92^BQN,2,3^FDHM,B0200 ' + this.text + '^FS'
+      } else {
+        message += '^FO10,' + t_l + '^A0R,28,28^FD' + this.text + '^FS'
+        message += '^FO270,' + t_l + '^A0R,28,28^FD' + this.text + '^FS'
+        message += '^FO45,92^BQN,2,5^FDHM,B0200 ' + this.text + '^FS'
+        message += '^FO305,92^BQN,2,5^FDHM,B0200 ' + this.text + '^FS'
+      }
+      message += '^XZ'
       this.$socket.emit('qrcode.write', { message })
       this.$socket.emit('qrcode.close')
     },

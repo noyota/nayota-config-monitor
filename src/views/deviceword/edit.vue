@@ -92,7 +92,7 @@
         <vxe-table-column field="value" title="value" :edit-render="{name: 'ElInput',props:{size:'mini'}}" />
         <vxe-table-column field="note" :title="$t('HardWareWord.note')" :edit-render="{name: 'ElInput',props:{size:'mini'}}" />
         <vxe-table-column field="options" :title="$t('HardWareWord.options')" :edit-render="{type: 'visible'}" width="100">
-          <template v-slot:edit="{ row }">
+          <template #edit="{ row }">
             <el-button size="mini" type="danger" @click="removeEvent('attributeTable' , row)">{{ $t('table.delete') }}</el-button>
           </template>
         </vxe-table-column>
@@ -115,6 +115,7 @@ import { create, updateOne } from '@/api/deviceword'
 import { list as IncList, create as createInc, updateOne as updateInc } from '@/api/incAddress'
 import { list as hardwareWordList } from '@/api/hardwareword'
 import { BAUD_RATES, CHECKS, STOP_BITS, DATA_BITS, SFS, BANDWIDTHS, CODERATE, FREQUENCY, DEFAUT_PORT, DEFAUT_LORA } from '@/utils/constant'
+import { list as wordList } from '@/api/words'
 export default {
   name: 'Form',
   components: { },
@@ -174,6 +175,13 @@ export default {
     },
     async init() {
       this.hardwareWords = (await hardwareWordList({ autopopulate: false })).data.rows
+      const words = (await wordList({ wordType: '6066ac0976587221d6f69b68' })).data.rows
+      if (words.length > 0) {
+        words.forEach(item => {
+          item.label = item.name
+        })
+        this.frequencyList = words
+      }
     },
     changeHardware() {
       const hardwareWords = this.hardwareWords.filter(item => item._id === this.temp.hardwareWord)

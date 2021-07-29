@@ -199,6 +199,9 @@ export const FREQUENCY = [
     value: '1c20ed80',
     label: '471.920频段'
   }, {
+    value: '1c210108',
+    label: '471.925频段'
+  }, {
     value: '1c222600',
     label: '472频段'
   }, {

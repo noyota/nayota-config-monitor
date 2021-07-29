@@ -34,6 +34,16 @@
         <el-form-item :label="$t('loraMaster.address')" prop="address" class="form-item">
           <el-input v-model="set.address" placeholder="未输入则默认生成" />
         </el-form-item>
+        <el-form-item label="数据格式" prop="address" class="form-item">
+          <el-select v-model="datatype" filterable :placeholder="$t('rules.types')">
+            <el-option
+              v-for="word in datatypes"
+              :key="word.value"
+              :label="word.name"
+              :value="word.value"
+            />
+          </el-select>
+        </el-form-item>
       </el-form>
       <vxe-table
         ref="serialTable"
@@ -118,8 +128,8 @@
       <div ref="qrcode" class="qrcode_I" style="margin-bottom: 10px;" />
       <div>{{ text }}</div>
       <div style="margin:20px">
-        <el-input-number v-model="print.num" :min="1" label="描述文字" />
-        <el-checkbox v-model="print.checked" style="margin-left:10px">相同<span style="font-size:12px;color: #919191;">勾选时打印两张一样的</span></el-checkbox>
+        <el-checkbox v-model="print.checked" style="margin-left:10px">勾选时设定相同2张为一份</el-checkbox><br>
+        <el-input-number v-model="print.num" :min="1" label="打印份数" />
       </div>
       <el-button style="margin-top: 10px" type="primary" @click="PrintBegin()">打印</el-button>
       <el-button style="margin-top: 10px" type="primary" @click="PrintBeginAndNext()">打印并配置累加地址</el-button>
@@ -150,7 +160,7 @@ export default {
       },
       print: {
         checked: true,
-        num: 3
+        num: 1
       },
       logger: '',
       message2: '',
@@ -178,14 +188,22 @@ export default {
       factorMap: {},
       crMap: {},
       frequencyMap: {},
-      next: false
+      next: false,
+      dataJSON: '',
+      datatypes: [{ value: 'string', name: '配置' }, { value: 'json', name: '参数' }],
+      datatype: 'json'
     }
   },
   watch: {
     dialogVisible(val) {
       if (val) {
         this.$nextTick(() => {
-          this.setQrcode(this.text)
+          if (this.datatype === 'json') {
+            console.log(this.address)
+            this.setQrcode(this.dataJSON + this.address)
+          } else {
+            this.setQrcode(this.text)
+          }
         })
       }
     }
@@ -210,7 +228,10 @@ export default {
     this.frequencyMap = {}
     const words = (await wordList({ wordType: '6066ac0976587221d6f69b68' })).data.rows
     if (words.length > 0) {
-      this.frequencyList = words.map(item => { item.label = item.name })
+      words.forEach(item => {
+        item.label = item.name
+      })
+      this.frequencyList = words
     }
     this.frequencyList.forEach(item => {
       this.frequencyMap[item.value] = item
@@ -312,7 +333,7 @@ export default {
           this.logger = this.logger + body
         }
       } catch (e) {
-        console.log(e)
+        // console.log(e)
       }
     },
     'qrcode.open': function(data) {
@@ -461,7 +482,20 @@ export default {
       while (l.length < 2) {
         l = '0' + l
       }
-      this.text = this.getDY() + this.set.loraset.code + l + this.address
+      this.dataJSON = this.getDY() + 'L#'
+      if (this.set.loraset.hardwareWord) {
+        this.dataJSON += this.set.loraset.hardwareWord.code + '#'
+      }
+      this.dataJSON += this.set.loraset.type + '#'
+      this.dataJSON += this.set.loraset.loraData.frequency + '#'
+      this.dataJSON += this.set.loraset.loraData.factor + '#'
+      this.dataJSON += this.set.loraset.loraData.bandwidth + '#'
+      this.dataJSON += this.set.loraset.loraData.codingrate + '#'
+      if (this.datatype === 'json') {
+        this.text = this.dataJSON + this.address
+      } else {
+        this.text = this.getDY() + this.set.loraset.code + l + this.address
+      }
       this.dialogVisible = true
       this.next = false
     },
@@ -490,74 +524,148 @@ export default {
         this.$message({ message: '请输入打印张数', type: 'error' })
         return
       }
-      const nums = []
-      const i = parseInt(this.print.num / 2)
-      for (let m = 0; m < i; m++) {
-        nums.push(2)
-      }
-      if (this.print.num % 2 > 0) {
-        nums.push(1)
-      }
+      // const nums = this.print.num
       let address = this.set.address
-      // eslint-disable-next-line no-unused-vars
-      for await (const item of nums) {
-        console.log(item)
-        let message = ''
-        if (item === 2) {
-          if (this.print.checked) {
-            let l = (address.length / 2).toString(16)
-            while (l.length < 2) {
-              l = '0' + l
-            }
-            const text1 = this.getDY() + this.set.loraset.code + l + address
-            const t_l = parseInt((320 - text1.length * 12) / 2)
-            message = '^XA^JMA^LL320^PW460^MD0^PR3^POI^LRN^LH0,0^CI26' +
-              '^FO10,' + t_l + '^A0R,28,28^FD' + text1 + '^FS' +
-              '^FO45,92^BQN,2,5^FDHM,B0200 ' + text1 + '^FS' +
-              '^FO270,' + t_l + '^A0R,28,28^FD' + text1 + '^FS' +
-              '^FO305,92^BQN,2,5^FDHM,B0200 ' + text1 + '^FS' +
-              '^XZ'
-            this.$socket.emit('qrcode.write', { message })
-          } else {
-            let l = (address.length / 2).toString(16)
-            while (l.length < 2) {
-              l = '0' + l
-            }
-            const text1 = this.getDY() + this.set.loraset.code + l + address
-            const t_l = parseInt((320 - text1.length * 12) / 2)
-            address = (parseInt(address, 16) + 1).toString(16)
+      if (this.print.checked) {
+        var _this = this
+        const print = function(i) {
+          if (i < _this.print.num) {
+            address = (parseInt(_this.set.address, 16) + i).toString(16)
             while (address.length < 4) {
               address = '0' + address
             }
-            const text2 = this.getDY() + this.set.loraset.code + l + address
-            const t_l2 = parseInt((320 - text2.length * 12) / 2)
-            message = '^XA^JMA^LL320^PW460^MD0^PR3^POI^LRN^LH0,0^CI26' +
-              '^FO10,' + t_l + '^A0R,28,28^FD' + text1 + '^FS' +
-              '^FO45,92^BQN,2,5^FDHM,B0200 ' + text1 + '^FS' +
-              '^FO270,' + t_l2 + '^A0R,28,28^FD' + text2 + '^FS' +
-              '^FO305,92^BQN,2,5^FDHM,B0200 ' + text2 + '^FS' +
-              '^XZ'
-            this.$socket.emit('qrcode.write', { message })
+            let l = (address.length / 2).toString(16)
+            while (l.length < 2) {
+              l = '0' + l
+            }
+            let text2 = ''
+            var size = 5
+            let text1 = _this.getDY() + _this.set.loraset.code + l + address
+            if (_this.datatype === 'json') {
+              text1 = _this.dataJSON + address
+              size = 3
+            } else {
+              size = 5
+            }
+            text2 = text1
+            let message = '^XA^JMA^LL320^PW460^MD0^PR3^PON^LRN^LH0,0^CI26'
+            if (text2.length > 48) {
+              text2 = text2.substring(0, 48)
+            }
+            if (text2.length > 24) {
+              var t1 = text2.substr(0, 24)
+              const t1_l = parseInt((322 - t1.length * 12) / 2)
+              var t2 = text2.substr(24, text2.length)
+              const t2_l = parseInt((322 - t2.length * 12) / 2)
+              message += '^FO0,' + t2_l + '^A0R,28,28^FD' + t2 + '^FS'
+              message += '^FO25,' + t1_l + '^A0R,28,28^FD' + t1 + '^FS'
+              message += '^FO60,92^BQN,2,' + size + '^FDHM,B0200 ' + text1 + '^FS'
+              message += '^FO270,' + t2_l + '^A0R,28,28^FD' + t2 + '^FS'
+              message += '^FO295,' + t1_l + '^A0R,28,28^FD' + t1 + '^FS'
+              message += '^FO340,92^BQN,2,' + size + '^FDHM,B0200 ' + text1 + '^FS'
+            } else {
+              const t_l = parseInt((322 - text2.length * 12) / 2)
+              message += '^FO10,' + t_l + '^A0R,28,28^FD' + text2 + '^FS'
+              message += '^FO270,' + t_l + '^A0R,28,28^FD' + text2 + '^FS'
+              message += '^FO45,92^BQN,2,' + size + '^FDHM,B0200 ' + text1 + '^FS'
+              message += '^FO305,92^BQN,2,' + size + '^FDHM,B0200 ' + text1 + '^FS'
+            }
+            message += '^XZ'
+            console.log('message', message)
+            _this.$socket.emit('qrcode.write', { message })
+            i++
+            console.log(i)
+            setTimeout(() => {
+              print(i)
+            }, 2000)
+          } else {
+            // alert('打印完成')
+            _this.printEnd()
           }
-        } else {
-          while (address.length < 4) {
-            address = '0' + address
-          }
-          let l = (address.length / 2).toString(16)
-          while (l.length < 2) {
-            l = '0' + l
-          }
-          const text1 = this.getDY() + this.set.loraset.code + l + address
-          const t_l = parseInt((320 - text1.length * 12) / 2)
-          message = '^XA^JMA^LL320^PW460^MD0^PR3^POI^LRN^LH0,0^CI26' +
-            '^FO10,' + t_l + '^A0R,28,28^FD' + text1 + '^FS' +
-            '^FO45,92^BQN,2,5^FDHM,B0200 ' + text1 + '^FS' +
-            '^XZ'
-          this.$socket.emit('qrcode.write', { message })
+          // console.log('message1', message)
         }
-        address = (parseInt(address, 16) + 1).toString(16)
+        print(0)
+      } else {
+        const _this = this
+        const print = function(i) {
+          if (i < (_this.print.num * 2)) {
+            address = (parseInt(_this.set.address, 16) + i).toString(16)
+            while (address.length < 4) {
+              address = '0' + address
+            }
+            let l = (address.length / 2).toString(16)
+            while (l.length < 2) {
+              l = '0' + l
+            }
+            let text1 = _this.getDY() + _this.set.loraset.code + l + address
+            let text1_ = ''
+            if (_this.datatype === 'json') {
+              text1 = _this.dataJSON + address
+            }
+            text1_ = text1
+            address = (parseInt(_this.set.address, 16) + i + 1).toString(16)
+            while (address.length < 4) {
+              address = '0' + address
+            }
+            let text2 = _this.getDY() + _this.set.loraset.code + l + address
+            let text2_ = ''
+            if (_this.datatype === 'json') {
+              text2 = _this.dataJSON + address
+            }
+            text2_ = text2
+            let size = 5
+            if (_this.datatype === 'json') {
+              size = 3
+            } else {
+              size = 5
+            }
+            let message = '^XA^JMA^LL320^PW460^MD0^PR3^PON^LRN^LH0,0^CI26'
+            if (text1_.length > 48) {
+              text1_ = text1_.substring(0, 48)
+            }
+            if (text2_.length > 48) {
+              text2_ = text2_.substring(0, 48)
+            }
+            if (text1_.length > 24) {
+              var t11_ = text1_.substr(0, 24)
+              const t11_l = parseInt((322 - t11_.length * 12) / 2)
+              var t12_ = text1_.substr(24, text1_.length)
+              const t12_l = parseInt((322 - t12_.length * 12) / 2)
+              message += '^FO0,' + t12_l + '^A0R,28,28^FD' + t12_ + '^FS'
+              message += '^FO25,' + t11_l + '^A0R,28,28^FD' + t11_ + '^FS'
+              message += '^FO60,92^BQN,2,' + size + '^FDHM,B0200 ' + text1 + '^FS'
+            } else {
+              const t_l = parseInt((322 - text1_.length * 12) / 2)
+              message += '^FO10,' + t_l + '^A0R,28,28^FD' + text1_ + '^FS'
+              message += '^FO45,92^BQN,2,' + size + '^FDHM,B0200 ' + text1 + '^FS'
+            }
+            if (text2_.length > 24) {
+              var t21_ = text2_.substr(0, 24)
+              const t21_l = parseInt((322 - t21_.length * 12) / 2)
+              var t22_ = text2.substr(24, text2_.length)
+              const t22_l = parseInt((322 - t22_.length * 12) / 2)
+              message += '^FO270,' + t22_l + '^A0R,28,28^FD' + t22_ + '^FS'
+              message += '^FO295,' + t21_l + '^A0R,28,28^FD' + t21_ + '^FS'
+              message += '^FO340,92^BQN,2,' + size + '^FDHM,B0200 ' + text2 + '^FS'
+            } else {
+              const t2_l = parseInt((322 - text2_.length * 12) / 2)
+              message += '^FO270,' + t2_l + '^A0R,28,28^FD' + text2_ + '^FS'
+              message += '^FO305,92^BQN,2,' + size + '^FDHM,B0200 ' + text2 + '^FS'
+            }
+            message += '^XZ'
+            // console.log('message', address, i)
+            _this.$socket.emit('qrcode.write', { message })
+            i = i + 2
+            setTimeout(() => {
+              print(i)
+            }, 2000)
+          } else {
+            // alert('打印完成')
+            _this.printEnd()
+          }
+        }
+        print(0)
       }
-      this.printEnd()
     },
     async PrintBegin() {
       if (this.connected) {
@@ -590,7 +698,7 @@ export default {
 <style scoped>
   .form-item{
     float:left;
-    width: 33%;
+    width: 25%;
   }
   .vxe-table-element{
     float:left;
