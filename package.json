@@ -70,7 +70,7 @@
     "js-cookie": "^2.2.0",
     "jsonlint": "1.6.3",
     "jsonwebtoken": "^8.2.1",
-    "jszip": "3.2.0",
+    "jszip": "3.7.0",
     "lodash": "latest",
     "log4js": "^6.1.0",
     "method-override": "^2.3.10",
